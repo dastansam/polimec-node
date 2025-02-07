@@ -49,7 +49,7 @@ use sp_runtime::{
 use sp_std::collections::btree_map::BTreeMap;
 use std::cell::RefCell;
 use system::EnsureSigned;
-use xcm::v4::PalletInfo as XcmPalletInfo;
+use xcm::v5::PalletInfo as XcmPalletInfo;
 use xcm_builder::{EnsureXcmOrigin, FixedWeightBounds, ParentIsPreset, SiblingParachainConvertsVia};
 use xcm_executor::traits::XcmAssetTransfers;
 
@@ -267,6 +267,7 @@ parameter_types! {
 impl pallet_balances::Config for TestRuntime {
 	type AccountStore = System;
 	type Balance = Balance;
+	type DoneSlashHandler = ();
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type FreezeIdentifier = ();
@@ -535,6 +536,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 				(AcceptedFundingAsset::WETH.id(), "WETH".as_bytes().to_vec(), "WETH".as_bytes().to_vec(), 18),
 			],
 			accounts: vec![],
+			next_asset_id: None,
 		},
 		..Default::default()
 	}

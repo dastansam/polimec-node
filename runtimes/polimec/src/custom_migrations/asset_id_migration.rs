@@ -1,5 +1,7 @@
 use crate::{AccountId, Funding, Runtime};
 use alloc::collections::BTreeMap;
+#[cfg(any(feature = "runtime-benchmarks", feature = "try-runtime"))]
+use frame_support::migrations::VersionedPostUpgradeData;
 use frame_support::{
 	pallet_prelude::{NMapKey, ValueQuery},
 	storage_alias,
@@ -8,10 +10,12 @@ use frame_support::{
 };
 use itertools::Itertools;
 use pallet_assets::{Approval, AssetAccount, AssetDetails, AssetMetadata};
+#[cfg(any(feature = "runtime-benchmarks", feature = "try-runtime"))]
+use parity_scale_codec::Encode;
 use polimec_common::assets::AcceptedFundingAsset;
 use sp_api::runtime_decl_for_core::CoreV5;
 use sp_runtime::BoundedVec;
-use xcm::v4::Location;
+use xcm::v5::Location;
 
 // Storage items of pallet-assets are set to private for some reason. So we have to redefine them to get the same storage
 // encoding and call the `translate` methods. -_-'
@@ -107,7 +111,7 @@ impl OnRuntimeUpgrade for FromOldAssetIdMigration {
 	fn pre_upgrade() -> Result<sp_std::vec::Vec<u8>, sp_runtime::TryRuntimeError> {
 		let funding_on_chain_version = Funding::on_chain_storage_version();
 		if funding_on_chain_version == 5 {
-			Ok(VersionedPostUpgradeData::MigrationExecuted(Vec::new()).encode())
+			Ok(VersionedPostUpgradeData::MigrationExecuted(sp_std::vec::Vec::new()).encode())
 		} else {
 			Ok(VersionedPostUpgradeData::Noop.encode())
 		}

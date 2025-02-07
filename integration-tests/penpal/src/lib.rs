@@ -61,13 +61,13 @@ use sp_api::impl_runtime_apis;
 pub use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
 use sp_runtime::{
-	create_runtime_str, generic, impl_opaque_keys,
+	generic, impl_opaque_keys,
 	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, Dispatchable},
 	transaction_validity::{TransactionSource, TransactionValidity},
 	ApplyExtrinsicResult,
 };
 pub use sp_runtime::{traits::ConvertInto, MultiAddress, Perbill, Permill};
-use sp_std::prelude::*;
+use sp_std::{borrow::Cow, prelude::*};
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
@@ -86,7 +86,7 @@ use xcm::{
 	latest::prelude::{AssetId as AssetLocationId, BodyId},
 	VersionedAssetId, VersionedAssets, VersionedLocation, VersionedXcm,
 };
-use xcm_fee_payment_runtime_api::{
+use xcm_runtime_apis::{
 	dry_run::{CallDryRunEffects, Error as XcmDryRunApiError, XcmDryRunEffects},
 	fees::Error as XcmPaymentApiError,
 };
@@ -232,14 +232,14 @@ impl_opaque_keys! {
 
 #[sp_version::runtime_version]
 pub const VERSION: RuntimeVersion = RuntimeVersion {
-	spec_name: create_runtime_str!("penpal-parachain"),
-	impl_name: create_runtime_str!("penpal-parachain"),
+	spec_name: Cow::Borrowed("penpal-parachain"),
+	impl_name: Cow::Borrowed("penpal-parachain"),
 	authoring_version: 1,
 	spec_version: 1,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
-	state_version: 1,
+	system_version: 1,
 };
 
 /// This determines the average expected block time that we are targeting.
@@ -398,6 +398,7 @@ impl pallet_balances::Config for Runtime {
 	type AccountStore = System;
 	/// The type for recording an account's balance.
 	type Balance = Balance;
+	type DoneSlashHandler = ();
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type FreezeIdentifier = ();
@@ -423,6 +424,7 @@ impl pallet_transaction_payment::Config for Runtime {
 	type OnChargeTransaction = pallet_transaction_payment::FungibleAdapter<Balances, ()>;
 	type OperationalFeeMultiplier = ConstU8<5>;
 	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = ();
 	type WeightToFee = WeightToFee;
 }
 
@@ -517,6 +519,7 @@ impl cumulus_pallet_parachain_system::Config for Runtime {
 	type ReservedDmpWeight = ReservedDmpWeight;
 	type ReservedXcmpWeight = ReservedXcmpWeight;
 	type RuntimeEvent = RuntimeEvent;
+	type SelectCore = cumulus_pallet_parachain_system::DefaultCoreSelector<Self>;
 	type SelfParaId = parachain_info::Pallet<Runtime>;
 	type WeightInfo = ();
 	type XcmpMessageHandler = XcmpQueue;
@@ -634,6 +637,7 @@ impl pallet_asset_tx_payment::Config for Runtime {
 		AssetsToBlockAuthor<Runtime, pallet_assets::Instance1>,
 	>;
 	type RuntimeEvent = RuntimeEvent;
+	type WeightInfo = ();
 }
 
 impl pallet_sudo::Config for Runtime {
@@ -888,7 +892,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl xcm_fee_payment_runtime_api::fees::XcmPaymentApi<Block> for Runtime {
+	impl xcm_runtime_apis::fees::XcmPaymentApi<Block> for Runtime {
 		fn query_acceptable_payment_assets(xcm_version: xcm::Version) -> Result<Vec<VersionedAssetId>, XcmPaymentApiError> {
 			let acceptable_assets = vec![AssetLocationId(xcm_config::RelayLocation::get())];
 			PolkadotXcm::query_acceptable_payment_assets(xcm_version, acceptable_assets)
@@ -901,11 +905,11 @@ impl_runtime_apis! {
 					Ok(WeightToFee::weight_to_fee(&weight))
 				},
 				Ok(asset_id) => {
-					log::trace!(target: "xcm::xcm_fee_payment_runtime_api", "query_weight_to_asset_fee - unhandled asset_id: {asset_id:?}!");
+					log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - unhandled asset_id: {asset_id:?}!");
 					Err(XcmPaymentApiError::AssetNotFound)
 				},
 				Err(_) => {
-					log::trace!(target: "xcm::xcm_fee_payment_runtime_api", "query_weight_to_asset_fee - failed to convert asset: {asset:?}!");
+					log::trace!(target: "xcm::xcm_runtime_apis", "query_weight_to_asset_fee - failed to convert asset: {asset:?}!");
 					Err(XcmPaymentApiError::VersionedConversionFailed)
 				}
 			}
@@ -920,7 +924,7 @@ impl_runtime_apis! {
 		}
 	}
 
-	impl xcm_fee_payment_runtime_api::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
+	impl xcm_runtime_apis::dry_run::DryRunApi<Block, RuntimeCall, RuntimeEvent, OriginCaller> for Runtime {
 		fn dry_run_call(origin: OriginCaller, call: RuntimeCall) -> Result<CallDryRunEffects<RuntimeEvent>, XcmDryRunApiError> {
 			use xcm_builder::InspectMessageQueues;
 			use xcm_executor::RecordXcm;

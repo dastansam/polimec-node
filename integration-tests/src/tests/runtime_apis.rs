@@ -6,8 +6,8 @@ use frame_support::traits::{
 };
 use polimec_common::assets::AcceptedFundingAsset;
 use sp_arithmetic::FixedU128;
-use xcm::v4::Junctions::X3;
-use xcm_fee_payment_runtime_api::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
+use xcm::v5::Junctions::X3;
+use xcm_runtime_apis::fees::runtime_decl_for_xcm_payment_api::XcmPaymentApiV1;
 
 mod xcm_payment_api {
 	use super::*;
@@ -16,7 +16,7 @@ mod xcm_payment_api {
 	#[test]
 	fn query_acceptable_payment_assets() {
 		PolimecNet::execute_with(|| {
-			let accepted_payment_assets = PolimecRuntime::query_acceptable_payment_assets(4u32).unwrap();
+			let accepted_payment_assets = PolimecRuntime::query_acceptable_payment_assets(5u32).unwrap();
 			let versioned_funding_assets = AcceptedFundingAsset::all_ids()
 				.into_iter()
 				.map(|loc| AssetId::from(loc))
@@ -43,6 +43,13 @@ mod xcm_payment_api {
 
 		// Native Asset
 		PolimecNet::execute_with(|| {
+			use xcm::v4::{
+				AssetId,
+				Junction::{GeneralIndex, PalletInstance, Parachain},
+				Junctions::{Here, X3},
+				Location,
+			};
+
 			let plmc_fee = PolimecRuntime::query_weight_to_asset_fee(
 				compute_weight,
 				VersionedAssetId::V4(AssetId(Location { parents: 0, interior: Here })),
@@ -92,7 +99,7 @@ mod fungibles_api {
 
 			let alice_assets = PolimecRuntime::query_account_balances(alice_account).unwrap();
 
-			let expected_assets = VersionedAssets::V4(
+			let expected_assets = VersionedAssets::V5(
 				vec![
 					Asset::from((Location::here(), 150_0_000_000_000_u128)),
 					Asset::from((AcceptedFundingAsset::DOT.id(), 100_0_000_000_000_u128)),

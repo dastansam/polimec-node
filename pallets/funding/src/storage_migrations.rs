@@ -13,7 +13,7 @@ use sp_runtime::{BoundedVec, Percent};
 extern crate alloc;
 use alloc::vec::Vec;
 use polimec_common::migration_types::{MigrationInfo, ParticipationType};
-use xcm::v4::Location;
+use xcm::v5::Location;
 
 /// The current storage version
 pub const STORAGE_VERSION: StorageVersion = StorageVersion::new(6);
@@ -128,7 +128,7 @@ pub mod v6 {
 						log::info!("migration items {:?}", items);
 						let origin_junction = old_migration.origin.user.interior.take_first().unwrap();
 						let new_origin = MigrationOrigin {
-							user: origin_junction,
+							user: origin_junction.try_into().expect("v4 Junction should be convertible to latest"),
 							id: old_migration.origin.id,
 							participation_type: old_migration.origin.participation_type,
 						};
